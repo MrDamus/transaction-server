@@ -24,17 +24,24 @@ exports.load = async (req, res, next, id) => {
  */
 
 exports.buy = async (req, res, next) => {
-  const url = `https://api.iextrading.com/1.0/stock/${req.body.symbol}/price`;
+  const { user } = req.locals;
+  const { symbol, amount } = req.body;
+  const url = `https://api.iextrading.com/1.0/stock/${symbol}/price`;
   const resp = await axios.get(url);
   const price = resp.data;
+  const cost = price * amount;
+  if (cost > user.money) {
+    res.status(400).json({ error: 'Not enough money' });
+    return;
+  }
   const newTransaction = Object.assign(req.body, { price });
   const transaction = await (new Transaction(newTransaction)).save();
-
+  user.money -= amount * price;
   const { wallet } = req.locals.user;
   wallet.push(transaction);
-  const user = Object.assign(req.locals.user, { wallet });
+  const updatedUser = Object.assign(user, { wallet });
 
-  user.save()
+  updatedUser.save()
     .then(savedUser => res.json(savedUser.transform()))
     .catch(e => console.warn(e));
 };
