@@ -59,6 +59,10 @@ const userSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
+  money: {
+    type: Number,
+    default: 1000,
+  },
 }, {
   timestamps: true,
 });
@@ -90,7 +94,7 @@ userSchema.pre('save', async function save(next) {
 userSchema.method({
   transform() {
     const transformed = {};
-    const fields = ['id', 'name', 'email', 'picture', 'role', 'createdAt', 'wallet', 'transactionsHistory'];
+    const fields = ['id', 'name', 'email', 'picture', 'role', 'createdAt', 'wallet', 'transactionsHistory', 'money'];
 
     fields.forEach((field) => {
       transformed[field] = this[field];
