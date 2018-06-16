@@ -36,10 +36,11 @@ exports.buy = async (req, res, next) => {
   }
   const newTransaction = Object.assign(req.body, { price });
   const transaction = await (new Transaction(newTransaction)).save();
-  user.money -= amount * price;
+  const money = user.money - cost;
+  console.log(money);
   const { wallet } = req.locals.user;
   wallet.push(transaction);
-  const updatedUser = Object.assign(user, { wallet });
+  const updatedUser = Object.assign(user, { wallet, money });
 
   updatedUser.save()
     .then(savedUser => res.json(savedUser.transform()))
