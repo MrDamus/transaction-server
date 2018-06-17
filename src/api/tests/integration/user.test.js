@@ -550,5 +550,33 @@ describe('Users API', async () => {
           expect(res.body).to.not.have.a.property('stack');
         });
     });
+
+    // // buy stock 
+
+    // describe('POST /v1/transaction/buy/:userId', () => {
+    //   it('should post transaction\'s info', async () => {
+    //     const transactionId = (await User.wallet.findOne({_id}));
+    //     return request(app)
+    //       .get(`/v1/transaction/buy/${id}`)
+    //       .set('Authorization', `Bearer ${userAccessToken}`)
+    //       .expect(httpStatus.OK)
+    //       .then((res) => {
+    //         expect(res.body).to.include(dbUsers.jonSnow);
+    //       });
+    //   });
+  
+    // it('should post transaction with id', async () => {
+    //   // fake time
+
+    //   return request(app)
+    //     .get('/v1/users/profile')
+    //     .set('Authorization', `Bearer ${AccessToken}`)
+    //     .expect(httpStatus.UNAUTHORIZED)
+    //     .then((res) => {
+    //       expect(res.body.code).to.be.equal(httpStatus.UNAUTHORIZED);
+    //       expect(res.body.message).to.be.equal('jwt expired');
+    //       expect(res.body).to.not.have.a.property('stack');
+    //     });
+    // });
   });
 });
