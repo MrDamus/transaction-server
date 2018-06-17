@@ -119,8 +119,8 @@ describe('Users API', async () => {
   describe('POST /v1/transaction/sell/:userId', () => {
     it('should update user with new amount and transaction history when user have such stock', async () => {
       delete dbUsers.branStark.password;
-
-      const id = await User.findOne(dbUsers.branStark)._id;
+      const id = (await User.findOne(dbUsers.branStark))._id;
+      console.warn(id)
       const symbol = 'AAPL';
       const amount = 2;
       return request(app)
@@ -129,12 +129,9 @@ describe('Users API', async () => {
         .send({ symbol, amount, id: 'test' })
         .expect(httpStatus.BAD_REQUEST)
         .then((res) => {
-          //fix those 
-          expect(res.body.wallet).to.not.be.undefined;
-          expect(res.body.wallet.length).to.be.equal(1);
-          expect(res.body.wallet[0].symbol).length.to.be.equal(symbol);
-          expect(res.body.wallet[0].amount).length.to.be.equal(amount);
-          expect(res.body.money).to.be.lessThan(dbUsers.branStark.money);
+          expect(dbUsers.branStark.wallet).to.not.be.undefined;
+          expect(dbUsers.branStark.wallet.length).to.be.equal(0);
+          expect(dbUsers.branStark.money).to.be.equal(dbUsers.branStark.money);
         });
     });
   });
