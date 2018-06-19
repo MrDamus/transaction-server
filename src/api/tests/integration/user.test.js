@@ -49,6 +49,14 @@ describe('Users API', async () => {
         email: 'jonsnow@gmail.com',
         password: passwordHashed,
         name: 'Jon Snow',
+        wallet: [
+          {
+            symbol: 'AAPL',
+            amount: 5,
+            price: 188.84,
+          }],
+        transactionsHistory: [],
+        money: 1000,
       },
     };
 
@@ -172,10 +180,10 @@ describe('Users API', async () => {
         .expect(httpStatus.OK)
         .then(async (res) => {
           const bran = format(dbUsers.branStark);
-          const john = format(dbUsers.jonSnow);
+          const jon = format(dbUsers.jonSnow);
 
           const includesBranStark = some(res.body, bran);
-          const includesjonSnow = some(res.body, john);
+          const includesjonSnow = some(res.body, jon);
 
           // before comparing it is necessary to convert String to Date
           res.body[0].createdAt = new Date(res.body[0].createdAt);
@@ -196,8 +204,8 @@ describe('Users API', async () => {
         .expect(httpStatus.OK)
         .then((res) => {
           delete dbUsers.jonSnow.password;
-          const john = format(dbUsers.jonSnow);
-          const includesjonSnow = some(res.body, john);
+          const jon = format(dbUsers.jonSnow);
+          const includesjonSnow = some(res.body, jon);
 
           // before comparing it is necessary to convert String to Date
           res.body[0].createdAt = new Date(res.body[0].createdAt);
@@ -216,8 +224,8 @@ describe('Users API', async () => {
         .expect(httpStatus.OK)
         .then((res) => {
           delete dbUsers.jonSnow.password;
-          const john = format(dbUsers.jonSnow);
-          const includesjonSnow = some(res.body, john);
+          const jon = format(dbUsers.jonSnow);
+          const includesjonSnow = some(res.body, jon);
 
           // before comparing it is necessary to convert String to Date
           res.body[0].createdAt = new Date(res.body[0].createdAt);
@@ -528,7 +536,7 @@ describe('Users API', async () => {
         .set('Authorization', `Bearer ${userAccessToken}`)
         .expect(httpStatus.OK)
         .then((res) => {
-          expect(res.body).to.include(dbUsers.jonSnow);
+          expect(res.body).to.deep.include(dbUsers.jonSnow);
         });
     });
 
@@ -550,33 +558,84 @@ describe('Users API', async () => {
           expect(res.body).to.not.have.a.property('stack');
         });
     });
+  });
 
-    // // buy stock 
+  describe('POST /v1/transaction/buy/:userId', () => {
+    it('should update user with new transaction when user have enough money', async () => {
+      delete dbUsers.jonSnow.password;
+      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
+      const symbol = 'AAPL';
+      const amount = 2;
+      return request(app)
+        .post(`/v1/transaction/buy/${id}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ symbol, amount })
+        .expect(httpStatus.OK)
+        .then((res) => {
+          expect(res.body.wallet).to.not.be.undefined;
+          expect(res.body.wallet.length).to.be.equal(2);
+          expect(res.body.wallet[1].symbol).length.to.be.equal(symbol);
+          expect(res.body.wallet[1].amount).length.to.be.equal(amount);
+          expect(res.body.money).to.be.lessThan(dbUsers.jonSnow.money);
+        });
+    });
 
-    // describe('POST /v1/transaction/buy/:userId', () => {
-    //   it('should post transaction\'s info', async () => {
-    //     const transactionId = (await User.wallet.findOne({_id}));
-    //     return request(app)
-    //       .get(`/v1/transaction/buy/${id}`)
-    //       .set('Authorization', `Bearer ${userAccessToken}`)
-    //       .expect(httpStatus.OK)
-    //       .then((res) => {
-    //         expect(res.body).to.include(dbUsers.jonSnow);
-    //       });
-    //   });
+    it('should not update user with new transaction when user have doesn\'t enough money', async () => {
+      delete dbUsers.jonSnow.password;
+      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
+      const symbol = 'AAPL';
+      const amount = 200;
+      return request(app)
+        .post(`/v1/transaction/buy/${id}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ symbol, amount })
+        .expect(httpStatus.BAD_REQUEST)
+        .then((res) => {
+          expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
+          expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
+        });
+    });
+  });
   
-    // it('should post transaction with id', async () => {
-    //   // fake time
-
-    //   return request(app)
-    //     .get('/v1/users/profile')
-    //     .set('Authorization', `Bearer ${AccessToken}`)
-    //     .expect(httpStatus.UNAUTHORIZED)
-    //     .then((res) => {
-    //       expect(res.body.code).to.be.equal(httpStatus.UNAUTHORIZED);
-    //       expect(res.body.message).to.be.equal('jwt expired');
-    //       expect(res.body).to.not.have.a.property('stack');
-    //     });
-    // });
+  // bad id
+  describe('POST /v1/transaction/sell/:userId', () => {
+    it('should update user with new amount and transaction history when user have such stock', async () => {
+      delete dbUsers.jonSnow.password;
+      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
+      console.warn(id)
+      const symbol = 'AAPL';
+      const amount = 2;
+      return request(app)
+        .post(`/v1/transaction/sell/${id}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ symbol, amount, id: 'test' })
+        .expect(httpStatus.BAD_REQUEST)
+        .then((res) => {
+          expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
+          expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
+        });
+    });
+    
+    it('should not update user when user have doesn\'t have needed amount', async () => {
+      delete dbUsers.jonSnow.password;
+      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
+      console.warn(id)
+      const symbol = 'AAPL';
+      const amount = 2;
+      return request(app)
+        .post(`/v1/transaction/sell/${id}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ symbol, amount, id: 'test' })
+        .expect(httpStatus.BAD_REQUEST)
+        .then((res) => {
+          expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
+          expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
+        });
+    });
   });
 });
+
+// z 0 na 1 z 1na 2 dodac obiekt do walleta transackcji symbol i cene 
