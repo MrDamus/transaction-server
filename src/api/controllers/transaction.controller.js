@@ -56,11 +56,13 @@ exports.sell = async (req, res, next) => {
   const price = resp.data;
   const income = price * amount;
   const sharePacket = user.wallet.find(t => t._id == id);
-  const userHaveRequestedAmount = sharePacket ? sharePacket.amount : 0;
+  const currentAmount = sharePacket ? sharePacket.amount : 0;
+  const userHaveRequestedAmount = currentAmount >= amount;
   if (!userHaveRequestedAmount) {
-    res.status(400).json({ error: 'You do not have such stock' });
+    res.status(400).json({ error: `You don't have enough stock` });
     return;
   }
+  
   const newTransactionHistory = Object.assign(req.body, { sellingPrice: price, sharePackageId: id });
   const transactionHistory = await (new SoldStock(newTransactionHistory)).save();
   const money = user.money + income;
