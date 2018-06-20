@@ -54,6 +54,7 @@ describe('Users API', async () => {
             symbol: 'AAPL',
             amount: 5,
             price: 188.84,
+            _id: 'test',
           }],
         transactionsHistory: [],
         money: 1000,
@@ -592,38 +593,39 @@ describe('Users API', async () => {
         .expect(httpStatus.BAD_REQUEST)
         .then((res) => {
           expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
-          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(1);
           expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
         });
     });
   });
-  
-  // bad id
+
   describe('POST /v1/transaction/sell/:userId', () => {
     it('should update user with new amount and transaction history when user have such stock', async () => {
       delete dbUsers.jonSnow.password;
-      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
-      console.warn(id)
+      const _user = await User.findOne({ email: dbUsers.jonSnow.email });
+      const id = _user._id;
       const symbol = 'AAPL';
-      const amount = 2;
+      const amount = 3;
       return request(app)
         .post(`/v1/transaction/sell/${id}`)
         .set('Authorization', `Bearer ${userAccessToken}`)
-        .send({ symbol, amount, id: 'test' })
-        .expect(httpStatus.BAD_REQUEST)
+        .send({ symbol, amount, id: _user.wallet[0]._id })
+        .expect(httpStatus.OK)
         .then((res) => {
-          expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
-          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
-          expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
+          expect(res.body.wallet).to.not.be.undefined;
+          expect(res.body.transactionsHistory.length).to.be.equal(1);
+          expect(res.body.wallet.length).to.be.equal(1);
+          expect(res.body.wallet[0].amount).to.be.equal(2);
+          expect(res.body.transactionsHistory[0].amount).to.be.equal(amount);
+          expect(res.body.money).to.be.greaterThan(dbUsers.jonSnow.money);
         });
     });
     
-    it('should not update user when user have doesn\'t have needed amount', async () => {
+    it('should not update user when user doesn\'t have needed amount', async () => {
       delete dbUsers.jonSnow.password;
       const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
-      console.warn(id)
       const symbol = 'AAPL';
-      const amount = 2;
+      const amount = 20;
       return request(app)
         .post(`/v1/transaction/sell/${id}`)
         .set('Authorization', `Bearer ${userAccessToken}`)
@@ -631,8 +633,25 @@ describe('Users API', async () => {
         .expect(httpStatus.BAD_REQUEST)
         .then((res) => {
           expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
-          expect(dbUsers.jonSnow.wallet.length).to.be.equal(0);
-          expect(dbUsers.jonSnow.money).to.be.equal(dbUsers.jonSnow.money);
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(1);
+          expect(dbUsers.jonSnow.wallet[0].amount).to.be.equal(5);
+        });
+    });
+
+    it('should not update user when user doesn\'t have transaction with that id', async () => {
+      delete dbUsers.jonSnow.password;
+      const id = (await User.findOne({ email: dbUsers.jonSnow.email }))._id;
+      const symbol = 'AAPL';
+      const amount = 2;
+      return request(app)
+        .post(`/v1/transaction/sell/${id}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ symbol, amount, id: 'notTest' })
+        .expect(httpStatus.BAD_REQUEST)
+        .then((res) => {
+          expect(dbUsers.jonSnow.wallet).to.not.be.undefined;
+          expect(dbUsers.jonSnow.wallet.length).to.be.equal(1);
+          expect(dbUsers.jonSnow.wallet[0].amount).to.be.equal(5);
         });
     });
   });
